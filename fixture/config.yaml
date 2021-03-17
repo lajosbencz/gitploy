@@ -1,0 +1,21 @@
+listen: ":9010"
+token:
+  key: "HTTP_X_GITLAB_TOKEN"
+  value: "*secret*"
+defaults:
+  mode: "branch"
+  constraint: "master"
+  integrate:
+    composer: true
+    npm: true
+    npm_script_key: "gitploy"
+  pre:
+    - ["php", "webhook_pre.php"]
+    - ["node", "webhook_pre.js"]
+  post:
+    - ["php", "webhook_post.php"]
+    - ["node", "webhook_post.js"]
+projects:
+  dummy:
+    remote: "https://github.com/lajosbencz/dummy.git"
+    local: "/var/www/gitploy-dummy"

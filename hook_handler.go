@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -32,7 +33,7 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-	hdFile, err := os.Create("hookdata-" + hookData.Project.PathWithNamespace + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
+	hdFile, err := os.Create("hookdata-" + strings.ReplaceAll("/", "-", hookData.Project.PathWithNamespace) + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
 	if err != nil {
 		handleError(w, err)
 		return

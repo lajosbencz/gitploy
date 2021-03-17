@@ -1,8 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +28,9 @@ func handleError(w http.ResponseWriter, err error) {
 
 func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	log.Println("HookHandler: " + r.RequestURI)
+	bodyBytes, _ := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	var hookData HookData
 	err := json.NewDecoder(r.Body).Decode(&hookData)
 	if err != nil {
@@ -38,7 +42,7 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-	io.Copy(hdFile, r.Body)
+	hdFile.Write(bodyBytes)
 	log.Println("received [" + hookData.ObjectKind + "] for [" + hookData.Repository.GitHTTPUrl + "]:[" + hookData.GetTag() + "]")
 
 	if hookData.ObjectKind == "push" || hookData.ObjectKind == "tag_push" {

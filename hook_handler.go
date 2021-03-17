@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -31,6 +32,12 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+	hdFile, err := os.Create("hookdata-" + hookData.Project.PathWithNamespace + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	io.Copy(hdFile, r.Body)
 	log.Println("received [" + hookData.ObjectKind + "] for [" + hookData.Repository.GitHTTPUrl + "]:[" + hookData.GetTag() + "]")
 
 	if hookData.ObjectKind == "push" || hookData.ObjectKind == "tag_push" {

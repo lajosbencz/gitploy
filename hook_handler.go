@@ -68,10 +68,17 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 		var errComposer, errNpm error
 		wg.Add(2)
 		go func() {
-			if *projectConfig.Integrate.Composer && (hookData.HasFileChanged("composer.json") || hookData.HasFileChanged("composer.lock")) {
-				cmd := exec.Command("composer", "install", "--no-interaction")
-				log.Println("install with composer")
-				errComposer = cmd.Run()
+			if *projectConfig.Integrate.Composer {
+				var cmd *exec.Cmd
+				if hookData.HasFileChanged("composer.lock") {
+					cmd = exec.Command("composer", "install", "--no-interaction")
+				} else if hookData.HasFileChanged("composer.json") {
+					cmd = exec.Command("composer", "update", "--no-interaction")
+				}
+				if cmd != nil {
+					log.Println("install with composer")
+					errComposer = cmd.Run()
+				}
 			}
 			wg.Done()
 		}()

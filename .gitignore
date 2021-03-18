@@ -24,3 +24,7 @@
 
 # Local History for Visual Studio Code
 .history/
+
+./_debug_bin
+./debug.test
+./gitploy

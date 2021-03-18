@@ -3,8 +3,8 @@ token:
   key: "HTTP_X_GITLAB_TOKEN"
   value: "*secret*"
 defaults:
-  mode: "branch"
-  constraint: "master"
+  mode: "semver"
+  constraint: "^1.0"
   integrate:
     composer: true
     npm: true

@@ -17,9 +17,7 @@ func main() {
 		panic(err)
 	}
 
-	hookHandler := &HookHandler{logs: make(chan string), Config: *config}
-	go hookHandler.log()
-
+	hookHandler := &HookHandler{Config: *config}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -27,6 +25,7 @@ func main() {
 		}
 		hookHandler.handleHook(w, r)
 	})
+
 	fmt.Println("listening on " + config.Listen)
 	http.ListenAndServe(config.Listen, nil)
 }

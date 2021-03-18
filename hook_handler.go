@@ -14,7 +14,6 @@ type npmPackageScripts struct {
 }
 
 type HookHandler struct {
-	logs   chan string
 	Config Config
 }
 
@@ -105,10 +104,4 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("{\"status\":\"ignored\"}"))
 	log.Println("ignored")
-}
-
-func (t *HookHandler) log() {
-	for item := range t.logs {
-		log.Println(item)
-	}
 }

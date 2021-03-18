@@ -72,6 +72,12 @@ func configProjectDefaults(c *Config, p *ConfigProject) {
 	if p.Integrate.NpmScriptKey == "" {
 		p.Integrate.NpmScriptKey = c.Defaults.Integrate.NpmScriptKey
 	}
+	for i := len(c.Defaults.Pre) - 1; i >= 0; i-- {
+		p.Pre = append(c.Defaults.Pre[i:i+1], p.Pre...)
+	}
+	for i := len(c.Defaults.Post) - 1; i >= 0; i-- {
+		p.Post = append(c.Defaults.Post[i:i+1], p.Post...)
+	}
 }
 
 func (r *Config) GetProject(name string) (*ConfigProject, error) {

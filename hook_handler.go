@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 )
@@ -17,9 +17,9 @@ type HookHandler struct {
 	Config Config
 }
 
-func handleError(w http.ResponseWriter, err error) {
-	log.Println(err.Error())
-	http.Error(w, err.Error(), 500)
+func handleError(w http.ResponseWriter, err error, prefix string) {
+	log.Println(prefix, err.Error())
+	http.Error(w, strings.TrimLeft(prefix+" "+err.Error(), " "), 500)
 }
 
 func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	var hookData HookData
 	err := json.NewDecoder(r.Body).Decode(&hookData)
 	if err != nil {
-		handleError(w, fmt.Errorf("failed to parse hook data: %s", err))
+		handleError(w, err, "failed to parse hook data")
 		return
 	}
 	// hdFile, err := os.Create("hookdata-" + strings.ReplaceAll(hookData.Project.PathWithNamespace, "/", "-") + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
@@ -60,12 +60,12 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 		} else if projectConfig.Mode == "semver" {
 			svCon, err := semver.NewConstraint(projectConfig.Constraint)
 			if err != nil {
-				handleError(w, err)
+				handleError(w, err, "failed to create semver constraint")
 				return
 			}
 			svVer, err := semver.NewVersion(branchOrTag)
 			if err != nil {
-				handleError(w, err)
+				handleError(w, err, "failed to create semver version")
 				return
 			}
 			if !svCon.Check(svVer) {
@@ -79,23 +79,23 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	if constraintPassed {
 		log.Println("constraints passed")
 		if err = HookGitSync(&hookData, projectConfig); err != nil {
-			handleError(w, err)
+			handleError(w, err, "failed to sync git")
 			return
 		}
 		if err = HookPre(&hookData, projectConfig); err != nil {
-			handleError(w, err)
+			handleError(w, err, "failed to run pre hooks")
 			return
 		}
 		if err = HookDependencies(&hookData, projectConfig); err != nil {
-			handleError(w, err)
+			handleError(w, err, "failed to install dependencies")
 			return
 		}
 		if err = HookBuild(&hookData, projectConfig); err != nil {
-			handleError(w, err)
+			handleError(w, err, "failed to build project")
 			return
 		}
 		if err = HookPost(&hookData, projectConfig); err != nil {
-			handleError(w, err)
+			handleError(w, err, "failed to run post hooks")
 			return
 		}
 		w.Write([]byte("{\"status\":\"done\"}"))

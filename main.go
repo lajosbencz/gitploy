@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	configFile := "config.yaml"
+	configFile := "gitploy.yaml"
 	if len(os.Args) > 1 {
 		configFile = os.Args[1]
 	}

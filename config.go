@@ -84,7 +84,6 @@ func (r *Config) GetProject(name string) (*ConfigProject, error) {
 
 func (r *Config) GetProjectByRemote(remote string) (*ConfigProject, error) {
 	log.Println("GetProjectByRemote: " + remote)
-	fmt.Println(r.Projects)
 	for _, p := range r.Projects {
 		log.Println("comparing [" + p.Remote + "] with [" + remote + "]")
 		if p.Remote == remote {

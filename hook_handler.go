@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type npmPackageScripts struct {
@@ -26,62 +25,86 @@ func handleError(w http.ResponseWriter, err error) {
 
 func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	log.Println("HookHandler: " + r.RequestURI)
-	bodyBytes, _ := ioutil.ReadAll(r.Body)
-	r.Body.Close()
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	// bodyBytes, _ := ioutil.ReadAll(r.Body)
+	// r.Body.Close()
+	// r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	var hookData HookData
 	err := json.NewDecoder(r.Body).Decode(&hookData)
 	if err != nil {
-		handleError(w, err)
+		handleError(w, fmt.Errorf("failed to parse hook data: %s", err))
 		return
 	}
-	hdFile, err := os.Create("hookdata-" + strings.ReplaceAll(hookData.Project.PathWithNamespace, "/", "-") + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	hdFile.Write(bodyBytes)
+	// hdFile, err := os.Create("hookdata-" + strings.ReplaceAll(hookData.Project.PathWithNamespace, "/", "-") + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
+	// if err != nil {
+	// 	handleError(w, err)
+	// 	return
+	// }
+	// hdFile.Write(bodyBytes)
 	log.Println("received [" + hookData.ObjectKind + "] for [" + hookData.Repository.GitHTTPUrl + "]:[" + hookData.GetTag() + "]")
 
-	if hookData.ObjectKind == "push" || hookData.ObjectKind == "tag_push" {
+	constraintPassed := true
 
-		projectConfig, err := t.Config.GetProjectByRemote(hookData.Repository.GitHTTPUrl)
-		if err != nil {
-			handleError(w, err)
-			return
+	projectConfig, err := t.Config.GetProjectByRemote(hookData.Repository.GitHTTPUrl)
+	if err != nil {
+		log.Println("ignoring project:", hookData.Repository.GitHTTPUrl)
+		constraintPassed = false
+	} else if hookData.ObjectKind != "push" && hookData.ObjectKind != "tag_push" {
+		log.Println("ignoring hook object kind:", hookData.ObjectKind)
+		constraintPassed = false
+	} else {
+		branchOrTag := hookData.GetTag()
+		if projectConfig.Mode == "branch" {
+			if projectConfig.Constraint != branchOrTag {
+				log.Println("ignoring branch:", branchOrTag)
+				constraintPassed = false
+			}
+		} else if projectConfig.Mode == "semver" {
+			svCon, err := semver.NewConstraint(projectConfig.Constraint)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			svVer, err := semver.NewVersion(branchOrTag)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			if !svCon.Check(svVer) {
+				log.Println("ignoring semver:", branchOrTag)
+				constraintPassed = false
+			}
 		}
+	}
 
+	w.Header().Add("Content-Type", "application/json")
+	if constraintPassed {
+		log.Println("constraints passed")
 		if err = HookGitSync(&hookData, projectConfig); err != nil {
 			handleError(w, err)
 			return
 		}
-
 		if err = HookPre(&hookData, projectConfig); err != nil {
 			handleError(w, err)
 			return
 		}
-
 		if err = HookDependencies(&hookData, projectConfig); err != nil {
 			handleError(w, err)
 			return
 		}
-
 		if err = HookBuild(&hookData, projectConfig); err != nil {
 			handleError(w, err)
 			return
 		}
-
 		if err = HookPost(&hookData, projectConfig); err != nil {
 			handleError(w, err)
 			return
 		}
-
-		w.Header().Add("Content-Type", "application/json")
 		w.Write([]byte("{\"status\":\"done\"}"))
-
-	} else {
-		log.Println("ignored event")
+		log.Println("done")
+		return
 	}
+	w.Write([]byte("{\"status\":\"ignored\"}"))
+	log.Println("ignored")
 }
 
 func (t *HookHandler) log() {

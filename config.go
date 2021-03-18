@@ -25,7 +25,6 @@ func ConfigFromYamlFile(filePath string) (*Config, error) {
 		configProjectDefaults(cfg, &v)
 		cfg.Projects[k] = v
 	}
-	fmt.Println(cfg)
 	return cfg, nil
 }
 

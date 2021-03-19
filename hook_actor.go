@@ -8,9 +8,9 @@ import (
 	"sync"
 )
 
-type HookActor func(*HookData, *ConfigProject) error
+type HookActor func(HookData, ConfigProject) error
 
-var HookGitSync HookActor = func(hd *HookData, cp *ConfigProject) error {
+var HookGitSync HookActor = func(hd HookData, cp ConfigProject) error {
 	if !isDir(cp.Local) {
 		return fmt.Errorf("project must be initialized manually first")
 	}
@@ -52,12 +52,12 @@ func execPrePost(localPath string, commandList [][]string) error {
 	return nil
 }
 
-var HookPre HookActor = func(hd *HookData, cp *ConfigProject) error {
+var HookPre HookActor = func(hd HookData, cp ConfigProject) error {
 	os.Chdir(cp.Local)
 	return execPrePost(cp.Local, cp.Pre)
 }
 
-var HookDependencies HookActor = func(hd *HookData, cp *ConfigProject) error {
+var HookDependencies HookActor = func(hd HookData, cp ConfigProject) error {
 	os.Chdir(cp.Local)
 	var wg sync.WaitGroup
 	var errComposer, errNpm error
@@ -89,7 +89,7 @@ var HookDependencies HookActor = func(hd *HookData, cp *ConfigProject) error {
 	return nil
 }
 
-var HookBuild HookActor = func(hd *HookData, cp *ConfigProject) error {
+var HookBuild HookActor = func(hd HookData, cp ConfigProject) error {
 	os.Chdir(cp.Local)
 	if *cp.Integrate.Npm {
 		if _, osErr := os.Stat("package.json"); osErr == nil {
@@ -113,7 +113,7 @@ var HookBuild HookActor = func(hd *HookData, cp *ConfigProject) error {
 	return nil
 }
 
-var HookPost HookActor = func(hd *HookData, cp *ConfigProject) error {
+var HookPost HookActor = func(hd HookData, cp ConfigProject) error {
 	os.Chdir(cp.Local)
 	return execPrePost(cp.Local, cp.Post)
 }

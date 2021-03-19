@@ -22,6 +22,25 @@ func handleError(w http.ResponseWriter, err error, prefix string) {
 	http.Error(w, strings.TrimLeft(prefix+" "+err.Error(), " "), 500)
 }
 
+func hookActors(hookData HookData, projectConfig ConfigProject) error {
+	if err := HookGitSync(hookData, projectConfig); err != nil {
+		return err
+	}
+	if err := HookPre(hookData, projectConfig); err != nil {
+		return err
+	}
+	if err := HookDependencies(hookData, projectConfig); err != nil {
+		return err
+	}
+	if err := HookBuild(hookData, projectConfig); err != nil {
+		return err
+	}
+	if err := HookPost(hookData, projectConfig); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 	log.Println("HookHandler: " + r.RequestURI)
 	// bodyBytes, _ := ioutil.ReadAll(r.Body)
@@ -77,28 +96,8 @@ func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	if constraintPassed {
-		log.Println("constraints passed")
-		if err = HookGitSync(&hookData, projectConfig); err != nil {
-			handleError(w, err, "failed to sync git")
-			return
-		}
-		if err = HookPre(&hookData, projectConfig); err != nil {
-			handleError(w, err, "failed to run pre hooks")
-			return
-		}
-		if err = HookDependencies(&hookData, projectConfig); err != nil {
-			handleError(w, err, "failed to install dependencies")
-			return
-		}
-		if err = HookBuild(&hookData, projectConfig); err != nil {
-			handleError(w, err, "failed to build project")
-			return
-		}
-		if err = HookPost(&hookData, projectConfig); err != nil {
-			handleError(w, err, "failed to run post hooks")
-			return
-		}
-		w.Write([]byte("{\"status\":\"done\"}"))
+		go hookActors(hookData, *projectConfig)
+		w.Write([]byte("{\"status\":\"ok\"}"))
 		log.Println("done")
 		return
 	}

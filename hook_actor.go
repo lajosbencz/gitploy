@@ -12,7 +12,21 @@ import (
 type HookActor func(*HookData, *ConfigProject) error
 
 var HookGitSync HookActor = func(hd *HookData, cp *ConfigProject) error {
-	return gitSync(cp.Remote, cp.Local)
+	if !isDir(cp.Local) {
+		return fmt.Errorf("project must be initialized manually first")
+	}
+	os.Chdir(cp.Local)
+	cmd := exec.Command("git", "fetch", "--all")
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	cmd = exec.Command("git", "reset", "--hard", "origin/"+hd.GetTag())
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func execCommand(command []string) error {

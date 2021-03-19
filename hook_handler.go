@@ -24,18 +24,23 @@ func handleError(w http.ResponseWriter, err error, prefix string) {
 
 func hookActors(hookData HookData, projectConfig ConfigProject) error {
 	if err := HookGitSync(hookData, projectConfig); err != nil {
+		log.Println("error at git sync hook:", err.Error())
 		return err
 	}
 	if err := HookPre(hookData, projectConfig); err != nil {
+		log.Println("error at pre hook:", err.Error())
 		return err
 	}
 	if err := HookDependencies(hookData, projectConfig); err != nil {
+		log.Println("error at dependencies hook:", err.Error())
 		return err
 	}
 	if err := HookBuild(hookData, projectConfig); err != nil {
+		log.Println("error at build hook:", err.Error())
 		return err
 	}
 	if err := HookPost(hookData, projectConfig); err != nil {
+		log.Println("error at post hook:", err.Error())
 		return err
 	}
 	return nil

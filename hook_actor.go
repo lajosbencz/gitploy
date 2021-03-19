@@ -34,6 +34,7 @@ func execCommand(command []string) error {
 	if cmdLen < 1 {
 		return fmt.Errorf("empty command")
 	}
+	log.Println("exec", command)
 	if cmdLen < 2 {
 		exec := exec.Command("bash", "-c", command[0])
 		err := exec.Run()
@@ -41,11 +42,6 @@ func execCommand(command []string) error {
 			return err
 		}
 	}
-	scr := command[1]
-	if _, osErr := os.Stat(scr); os.IsNotExist(osErr) {
-		return osErr
-	}
-	log.Println("exec pre ", command)
 	exe := exec.Command(command[0], command[1:]...)
 	return exe.Run()
 }

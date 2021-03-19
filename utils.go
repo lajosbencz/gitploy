@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"os"
+	"os/exec"
+)
 
 func isDir(filePath string) bool {
 	stat, err := os.Stat(filePath)
@@ -18,4 +21,15 @@ func isFile(filePath string) bool {
 	}
 	mode := stat.Mode()
 	return mode.IsRegular()
+}
+
+func runCmd(bin string, args ...string) error {
+	exec := exec.Command(bin, args...)
+	exec.Stdout = os.Stdout
+	exec.Stderr = os.Stderr
+	err := exec.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }

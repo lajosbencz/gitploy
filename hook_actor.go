@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"sync"
 )
 
@@ -16,13 +15,11 @@ var HookGitSync HookActor = func(hd *HookData, cp *ConfigProject) error {
 		return fmt.Errorf("project must be initialized manually first")
 	}
 	os.Chdir(cp.Local)
-	cmd := exec.Command("git", "fetch", "--all")
-	err := cmd.Run()
+	err := runCmd("git", "fetch", "--all")
 	if err != nil {
 		return err
 	}
-	cmd = exec.Command("git", "reset", "--hard", "origin/"+hd.GetTag())
-	err = cmd.Run()
+	err = runCmd("git", "reset", "--hard", "origin/"+hd.GetTag())
 	if err != nil {
 		return err
 	}
@@ -36,14 +33,12 @@ func execCommand(command []string) error {
 	}
 	log.Println("exec", command)
 	if cmdLen < 2 {
-		exec := exec.Command("bash", "-c", command[0])
-		err := exec.Run()
+		err := runCmd("bash", "-c", command[0])
 		if err != nil {
 			return err
 		}
 	}
-	exe := exec.Command(command[0], command[1:]...)
-	return exe.Run()
+	return runCmd(command[0], command[1:]...)
 }
 
 func execPrePost(localPath string, commandList [][]string) error {
@@ -69,24 +64,17 @@ var HookDependencies HookActor = func(hd *HookData, cp *ConfigProject) error {
 	wg.Add(2)
 	go func() {
 		if *cp.Integrate.Composer {
-			var cmd *exec.Cmd
 			if hd.HasFileChanged("composer.lock") {
-				cmd = exec.Command("composer", "install", "--no-interaction")
+				errComposer = runCmd("composer", "install", "--no-interaction")
 			} else if hd.HasFileChanged("composer.json") {
-				cmd = exec.Command("composer", "update", "--no-interaction")
-			}
-			if cmd != nil {
-				log.Println("install with composer")
-				errComposer = cmd.Run()
+				errComposer = runCmd("composer", "update", "--no-interaction")
 			}
 		}
 		wg.Done()
 	}()
 	go func() {
 		if *cp.Integrate.Npm && (hd.HasFileChanged("package.json") || hd.HasFileChanged("package-lock.json")) {
-			cmd := exec.Command("npm", "install")
-			log.Println("install with npm")
-			errNpm = cmd.Run()
+			errNpm = runCmd("npm", "install")
 		}
 		wg.Done()
 	}()
@@ -115,9 +103,7 @@ var HookBuild HookActor = func(hd *HookData, cp *ConfigProject) error {
 				return err
 			}
 			if _, ok := npmPackage.Scripts[cp.Integrate.NpmScriptKey]; ok {
-				log.Println("executing npm script")
-				exe := exec.Command("npm", "run", cp.Integrate.NpmScriptKey)
-				err = exe.Run()
+				err = runCmd("npm", "run", cp.Integrate.NpmScriptKey)
 				if err != nil {
 					return err
 				}

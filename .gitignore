@@ -28,3 +28,6 @@
 /_debug_bin
 /debug.test
 /gitploy
+dist/
+
+.env

@@ -7,16 +7,13 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  binary: gitployd
-  - env:
+  - binary: gitployd
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-    goarch:
-      - amd64
-      - arm64
 archives:
   - replacements:
       darwin: Darwin
@@ -33,5 +30,4 @@ changelog:
   filters:
     exclude:
       - '^docs:'
-      - '^temp:'
       - '^test:'

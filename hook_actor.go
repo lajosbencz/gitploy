@@ -64,16 +64,12 @@ var HookDependencies HookActor = func(hd HookData, cp ConfigProject) error {
 	wg.Add(2)
 	go func() {
 		if *cp.Integrate.Composer {
-			if hd.HasFileChanged("composer.lock") {
-				errComposer = runCmd("composer", "install", "--no-interaction")
-			} else if hd.HasFileChanged("composer.json") {
-				errComposer = runCmd("composer", "update", "--no-interaction")
-			}
+			errComposer = runCmd("composer", "install", "--no-interaction")
 		}
 		wg.Done()
 	}()
 	go func() {
-		if *cp.Integrate.Npm && (hd.HasFileChanged("package.json") || hd.HasFileChanged("package-lock.json")) {
+		if *cp.Integrate.Npm {
 			errNpm = runCmd("npm", "install")
 		}
 		wg.Done()

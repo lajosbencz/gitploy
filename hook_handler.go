@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -47,22 +48,22 @@ func hookActors(hookData HookData, projectConfig ConfigProject) error {
 }
 
 func (t *HookHandler) handleHook(w http.ResponseWriter, r *http.Request) {
+	whitelist := strings.Split("127.0.0.1,::1", ",")
+	remoteAddr := r.RemoteAddr
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		remoteAddr = forwardedFor
+	}
+	if r.Header.Get(t.Config.Token.Key) != t.Config.Token.Value && !stringListContains(whitelist, remoteAddr) {
+		handleError(w, fmt.Errorf("failed to verify token"), "")
+		return
+	}
 	log.Println("HookHandler: " + r.RequestURI)
-	// bodyBytes, _ := ioutil.ReadAll(r.Body)
-	// r.Body.Close()
-	// r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	var hookData HookData
 	err := json.NewDecoder(r.Body).Decode(&hookData)
 	if err != nil {
 		handleError(w, err, "failed to parse hook data")
 		return
 	}
-	// hdFile, err := os.Create("hookdata-" + strings.ReplaceAll(hookData.Project.PathWithNamespace, "/", "-") + "-" + hookData.ObjectKind + "-" + hookData.CheckoutSha + ".json")
-	// if err != nil {
-	// 	handleError(w, err)
-	// 	return
-	// }
-	// hdFile.Write(bodyBytes)
 	log.Println("received [" + hookData.ObjectKind + "] for [" + hookData.Repository.GitHTTPUrl + "]:[" + hookData.GetTag() + "]")
 
 	constraintPassed := true

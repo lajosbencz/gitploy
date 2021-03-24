@@ -21,6 +21,9 @@ func ConfigFromYamlFile(filePath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.Token.Key == "" {
+		cfg.Token.Key = "X-Gitlab-Token"
+	}
 	for k, v := range cfg.Projects {
 		configProjectDefaults(cfg, &v)
 		cfg.Projects[k] = v
